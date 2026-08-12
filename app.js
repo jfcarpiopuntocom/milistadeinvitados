@@ -57,9 +57,9 @@ function seedDemo(){
   const ev1 = uid();
   const d = new Date(); d.setDate(d.getDate()+2);
   db.events.push({
-    id:ev1, name:"NEON NIGHTS #12", venue:"Distrito 09 — Sector Bajo",
+    id:ev1, name:"NEON NIGHTS #12", venue:"",
     date: d.toISOString().slice(0,10), time:"23:59", capacity:180,
-    notes:"Dress code: dark/tech. Línea VIP separada.", createdAt: Date.now()
+    notes:"", createdAt: Date.now()
   });
   db.activeEventId = ev1;
   ["Ryo Tanaka","Selene Vox","Marco Cruz","Ana Kade","Iris Chen","Damian Reyes"].forEach((n,i)=>{
@@ -624,36 +624,20 @@ function render(silent){
   const cap = ev.capacity||0;
   const pct = cap? Math.min(100, Math.round(totalHeads/cap*100)) : 0;
 
-  // Head
+  // Hero simplificado: solo lo esencial para actuar sobre la lista
+  const expBadge = status!=="live" ? el("span",{class:"expiry-badge", style:`color:${status==='expired'?'var(--red)':'var(--amber)'};border-color:currentColor;`},
+        status==="expired"?"EXPIRADO":"EXPIRA EN <24H") : null;
   const head = el("div",{class:"panel-head"},[
     el("div",{},[
-      el("div",{class:"panel-title"},[ ev.name, el("small",{}, (ev.venue||"sin venue")+" · "+ev.date+" "+ev.time) ]),
+      el("div",{class:"panel-title"},[ ev.name, expBadge ])
     ]),
     el("div",{class:"panel-actions"},[
-      el("span",{class:"expiry-badge", style:`color:${status==='expired'?'var(--red)':status==='soon'?'var(--amber)':'var(--green)'};border-color:currentColor;`},
-        status==="expired"?"EXPIRADO":status==="soon"?"EXPIRA EN <24H":"VIGENTE"),
-      el("button",{class:"btn btn-ghost btn-sm", onclick:()=>openEventModal(ev)},"✎ Editar evento"),
       el("button",{class:"btn btn-solid", onclick:()=>openGuestModal(null)},"+ Invitado")
     ])
   ]);
   main.appendChild(head);
 
-  // Stats
-  main.appendChild(el("div",{class:"stats-strip"},[
-    statBox(guests.length,"Invitados"),
-    statBox(checkedIn,"Check-in"),
-    statBox(vipCount,"VIP"),
-    statBox(totalHeads,"Total personas"),
-    statBox(guests.length? Math.round(checkedIn/guests.length*100)+"%":"0%","Asistencia"),
-  ]));
-
-  // Gauge
-  main.appendChild(el("div",{class:"gauge-wrap"},[
-    el("div",{class:"gauge-top"},[el("span",{},"Capacidad del venue"), el("span",{}, totalHeads+" / "+(cap||"∞")+"  ("+pct+"%)")]),
-    el("div",{class:"gauge-track"},[ el("div",{class:"gauge-fill"+(pct>=90?" full":""), style:`width:${pct}%`}) ])
-  ]));
-
-  // Toolbar
+  // Toolbar — justo bajo el hero, directo a la lista
   const statuses = [["all","Todos"],["pending","Pendientes"],["confirmed","Confirmados"],["checked-in","Ingresaron"],["no-show","No-show"]];
   main.appendChild(el("div",{class:"toolbar"},[
     el("div",{class:"search-box"},[
@@ -663,13 +647,31 @@ function render(silent){
     ]),
     el("div",{class:"chip-filter"}, statuses.map(([k,label])=>
       el("button",{class:filterState.status===k?"active":"", onclick:()=>{filterState.status=k; renderGuestTable(); refreshFilterChips();}}, label)
-    )),
-    el("button",{class:"btn btn-magenta btn-sm", onclick:()=>openAnalytics(ev,guests)},"◱ Analítica")
+    ))
   ]));
 
-  // Table container
+  // ===== LA LISTA — foco central =====
   main.appendChild(el("div",{class:"guest-table-wrap", id:"guest-table-wrap"}));
   renderGuestTable();
+
+  // ===== Detalles / extras — al fondo, secundarios =====
+  main.appendChild(el("div",{class:"divider-label"},"Detalles del evento"));
+  main.appendChild(el("div",{class:"stats-strip"},[
+    statBox(guests.length,"Invitados"),
+    statBox(checkedIn,"Check-in"),
+    statBox(vipCount,"VIP"),
+    statBox(totalHeads,"Total personas"),
+    statBox(guests.length? Math.round(checkedIn/guests.length*100)+"%":"0%","Asistencia"),
+  ]));
+  main.appendChild(el("div",{class:"gauge-wrap"},[
+    el("div",{class:"gauge-top"},[el("span",{},"Capacidad del venue"), el("span",{}, totalHeads+" / "+(cap||"∞")+"  ("+pct+"%)")]),
+    el("div",{class:"gauge-track"},[ el("div",{class:"gauge-fill"+(pct>=90?" full":""), style:`width:${pct}%`}) ])
+  ]));
+  main.appendChild(el("div",{class:"panel-actions", style:"margin-top:14px; justify-content:flex-start;"},[
+    el("span",{class:"g-sub", style:"align-self:center; margin-right:4px;"}, (ev.venue||"sin venue")+" · "+ev.date+" "+ev.time),
+    el("button",{class:"btn btn-ghost btn-sm", onclick:()=>openEventModal(ev)},"✎ Editar evento"),
+    el("button",{class:"btn btn-magenta btn-sm", onclick:()=>openAnalytics(ev,guests)},"◱ Analítica")
+  ]));
 
   if(!silent) {} // reserved
 }
